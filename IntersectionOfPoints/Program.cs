@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Humanizer;
 using Bogus;
+using System.Diagnostics;
 
 namespace IntersectionOfPoints
 {
@@ -32,6 +33,10 @@ namespace IntersectionOfPoints
             var listUser1 = dataFaker.Generate(100);
             var listUser2 = dataFaker.Generate(100);
 
+            Stopwatch sw = new Stopwatch();
+
+            sw.Start();
+
             foreach (var datai in listUser1)
             {
                 var posi = new Position(new Longitude(datai.Longitude), new Latitude(datai.Latitude));
@@ -53,6 +58,10 @@ namespace IntersectionOfPoints
                     Console.WriteLine($"******");
                 }
             }
+
+            sw.Stop();
+
+            Console.WriteLine($"Elapsed={sw.Elapsed.Humanize()}");
 
             Console.ReadKey();
         }
