@@ -23,47 +23,56 @@ namespace IntersectionOfPoints
 
         static void Main(string[] args)
         {
+            var (listUser1, listUser2) = GetFakeData(100);
 
+            Stopwatch sw = new Stopwatch();
+
+            sw.Start();
+
+            ProcessList(listUser1, listUser2);
+
+            sw.Stop();
+            Console.WriteLine($"Elapsed={sw.Elapsed.Humanize()}");
+            Console.ReadKey();
+        }
+
+        static (List<UserGeoData> listOne, List<UserGeoData> listTwo) GetFakeData(int numberOfLines)
+        {
             var dataFaker = new Faker<UserGeoData>()
                 .StrictMode(true)
                 .RuleFor(o => o.Latitude, f => f.Random.Double(33.600000, 33.600600))
                 .RuleFor(o => o.Longitude, f => f.Random.Double(-7.600000, -7.600000))
                 .RuleFor(o => o.DateReported, f => f.Date.Between(DateTime.Parse("01/01/2019 10:00"), DateTime.Parse("01/01/2019 11:00")));
 
-            var listUser1 = dataFaker.Generate(100);
-            var listUser2 = dataFaker.Generate(100);
+            return (dataFaker.Generate(numberOfLines), dataFaker.Generate(numberOfLines));
+        }
 
-            Stopwatch sw = new Stopwatch();
-
-            sw.Start();
-
-            foreach (var datai in listUser1)
+        static void ProcessList(List<UserGeoData> list1, List<UserGeoData> list2)
+        {
+            foreach (var datai in list1)
             {
                 var posi = new Position(new Longitude(datai.Longitude), new Latitude(datai.Latitude));
-
-                foreach (var dataj in listUser2)
+                foreach (var dataj in list2)
                 {
+                    // get position
                     var posj = new Position(new Longitude(dataj.Longitude), new Latitude(dataj.Latitude));
-                    var interval = datai.DateReported.Subtract(dataj.DateReported);
-                    var intervalHumanized = interval.Humanize();
+
+                    // get distance
                     var distance = posi.DistanceTo(posj);
 
-                    Console.WriteLine($"Interval: {intervalHumanized}");
-                    Console.WriteLine($"distance: {distance}");
+                    // check distance
+                    if (!(distance <= Distance.FromMeters(10)))
+                        // continue if the desired distance isn't met
+                        continue;
 
-                    if(distance <= Distance.FromMeters(10)
-                        && interval <= TimeSpan.FromMinutes(10))
+                    // get interval
+                    var interval = datai.DateReported.Subtract(dataj.DateReported);
+
+                    // check interval
+                    if (interval <= TimeSpan.FromMinutes(10))
                         Console.WriteLine($">>>>>> ORANGE PERSON <<<<<<");
-
-                    Console.WriteLine($"******");
                 }
             }
-
-            sw.Stop();
-
-            Console.WriteLine($"Elapsed={sw.Elapsed.Humanize()}");
-
-            Console.ReadKey();
         }
     }
 }
