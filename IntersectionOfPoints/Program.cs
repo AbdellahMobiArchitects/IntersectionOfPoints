@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Humanizer;
+using Bogus;
 
 namespace IntersectionOfPoints
 {
@@ -22,49 +23,14 @@ namespace IntersectionOfPoints
         static void Main(string[] args)
         {
 
-            var listUser1 = new List<UserGeoData>()
-            {
-                new UserGeoData 
-                { 
-                    Latitude=33.588225,
-                    Longitude=-7.683082,
-                    DateReported=DateTime.Parse("17/04/2019 23:00"), 
-                },
-                new UserGeoData
-                {
-                    Latitude=33.588520,
-                    Longitude=-7.682417,
-                    DateReported=DateTime.Parse("17/04/2019 23:00"),
-                },
-                new UserGeoData 
-                {
-                    Latitude=33.589512,
-                    Longitude=-7.680336,
-                    DateReported=DateTime.Parse("17/04/2019 23:00"),
-                },
-            };
+            var dataFaker = new Faker<UserGeoData>()
+                .StrictMode(true)
+                .RuleFor(o => o.Latitude, f => f.Random.Double(33.600000, 33.600600))
+                .RuleFor(o => o.Longitude, f => f.Random.Double(-7.600000, -7.600000))
+                .RuleFor(o => o.DateReported, f => f.Date.Between(DateTime.Parse("01/01/2019 10:00"), DateTime.Parse("01/01/2019 11:00")));
 
-            var listUser2 = new List<UserGeoData>()
-            {
-                new UserGeoData
-                {
-                    Latitude=33.589494,
-                    Longitude=-7.680379,
-                    DateReported=DateTime.Parse("17/04/2019 22:00"),
-                },
-                new UserGeoData
-                {
-                    Latitude=33.589494,
-                    Longitude=-7.680379,
-                    DateReported=DateTime.Parse("17/04/2019 23:00"),
-                },
-                new UserGeoData
-                {
-                    Latitude=33.589494,
-                    Longitude=-7.680379,
-                    DateReported=DateTime.Parse("17/04/2019 23:30"),
-                },
-            };
+            var listUser1 = dataFaker.Generate(100);
+            var listUser2 = dataFaker.Generate(100);
 
             foreach (var datai in listUser1)
             {
