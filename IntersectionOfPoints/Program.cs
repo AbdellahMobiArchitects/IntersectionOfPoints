@@ -21,15 +21,18 @@ namespace IntersectionOfPoints
             public DateTime DateReported { get; set; }
         }
 
+        const int MINIMUM_DISTANCE_METERS = 10;
+        const int MINIMUM_INTERVAL_MINUTES = 10;
+
         static void Main(string[] args)
         {
-            var (listUser1, listUser2) = GetFakeData(100);
+            var (listUser1, listUser2) = GetFakeData(10000);
 
             Stopwatch sw = new Stopwatch();
 
             sw.Start();
 
-            ProcessList(listUser1, listUser2);
+            ProcessList(listUser1, listUser2, MINIMUM_INTERVAL_MINUTES, MINIMUM_DISTANCE_METERS);
 
             sw.Stop();
             Console.WriteLine($"Elapsed={sw.Elapsed.Humanize()}");
@@ -47,7 +50,7 @@ namespace IntersectionOfPoints
             return (dataFaker.Generate(numberOfLines), dataFaker.Generate(numberOfLines));
         }
 
-        static void ProcessList(List<UserGeoData> list1, List<UserGeoData> list2)
+        static void ProcessListNew(List<UserGeoData> list1, List<UserGeoData> list2, int intervalInMinutes, int distanceInMeters)
         {
             foreach (var datai in list1)
             {
@@ -61,7 +64,7 @@ namespace IntersectionOfPoints
                     var distance = posi.DistanceTo(posj);
 
                     // check distance
-                    if (!(distance <= Distance.FromMeters(10)))
+                    if (!(distance <= Distance.FromMeters(distanceInMeters)))
                         // continue if the desired distance isn't met
                         continue;
 
@@ -69,7 +72,35 @@ namespace IntersectionOfPoints
                     var interval = datai.DateReported.Subtract(dataj.DateReported);
 
                     // check interval
-                    if (interval <= TimeSpan.FromMinutes(10))
+                    if (interval <= TimeSpan.FromMinutes(intervalInMinutes))
+                        Console.WriteLine($">>>>>> ORANGE PERSON <<<<<<");
+                }
+            }
+        }
+
+        static void ProcessList(List<UserGeoData> list1, List<UserGeoData> list2,int intervalInMinutes,int distanceInMeters)
+        {
+            foreach (var datai in list1)
+            {
+                var posi = new Position(new Longitude(datai.Longitude), new Latitude(datai.Latitude));
+                foreach (var dataj in list2)
+                {
+                    // get position
+                    var posj = new Position(new Longitude(dataj.Longitude), new Latitude(dataj.Latitude));
+
+                    // get distance
+                    var distance = posi.DistanceTo(posj);
+
+                    // check distance
+                    if (!(distance <= Distance.FromMeters(distanceInMeters)))
+                        // continue if the desired distance isn't met
+                        continue;
+
+                    // get interval
+                    var interval = datai.DateReported.Subtract(dataj.DateReported);
+
+                    // check interval
+                    if (interval <= TimeSpan.FromMinutes(intervalInMinutes))
                         Console.WriteLine($">>>>>> ORANGE PERSON <<<<<<");
                 }
             }
