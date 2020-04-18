@@ -21,7 +21,6 @@ namespace IntersectionOfPoints
             public double Longitude { get; set; }
             public DateTime DateReported { get; set; }
         }
-        private static object obj = new object();
 
         const int MINIMUM_DISTANCE_METERS = 10;
         const int MINIMUM_INTERVAL_MINUTES = 10;
@@ -31,10 +30,11 @@ namespace IntersectionOfPoints
 
         static void Main(string[] args)
         {
-            var (listUser1, listUser2) = GetFakeData(100);
+            var (listUser1, listUser2) = GetFakeData(10000);
 
             Stopwatch sw = new Stopwatch();
 
+            Console.WriteLine($"Starting Test");
             sw.Start();
 
             ProcessList(
@@ -48,7 +48,7 @@ namespace IntersectionOfPoints
 
             Console.WriteLine($"total loops => {loopCount}");
             Console.WriteLine($"total match => {matchCount}");
-            Console.WriteLine($"elapsed time => {sw.Elapsed.Humanize()} // {sw.Elapsed.TotalMilliseconds}");
+            Console.WriteLine($"elapsed time => {sw.Elapsed.TotalMilliseconds} ms");
             Console.ReadKey();
         }
 
@@ -74,22 +74,11 @@ namespace IntersectionOfPoints
 
             Parallel.ForEach(list1, (datai) =>
             {
-                var posi = new Position(new Longitude(datai.Longitude), new Latitude(datai.Latitude));
-
                 foreach (var dataj in list2)
                 {
-                    // get position
-                    var posj = new Position(new Longitude(dataj.Longitude), new Latitude(dataj.Latitude));
-
                     // get distance
-                    var distance = posi.DistanceTo(posj);
-
-                    //var distance2 = DistanceMetresSEP(datai.Latitude, datai.Longitude, dataj.Latitude, dataj.Longitude);
-
-
-                    // check distance
-                    if (distance <= Distance.FromMeters(distanceInMeters))
-                    //if (distance2 <= Distance.FromMeters(distanceInMeters).Value)
+                    var distance2 = DistanceMetresSEP(datai.Latitude, datai.Longitude, dataj.Latitude, dataj.Longitude);
+                    if (distance2 <= distanceInMeters)
                     {
                         // get interval
                         var interval = datai.DateReported.Subtract(dataj.DateReported);
