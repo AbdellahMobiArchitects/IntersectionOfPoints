@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Humanizer;
 using Bogus;
 using System.Diagnostics;
+using System.Threading;
 
 namespace IntersectionOfPoints
 {
@@ -83,8 +84,12 @@ namespace IntersectionOfPoints
                     // get distance
                     var distance = posi.DistanceTo(posj);
 
+                    //var distance2 = DistanceMetresSEP(datai.Latitude, datai.Longitude, dataj.Latitude, dataj.Longitude);
+
+
                     // check distance
                     if (distance <= Distance.FromMeters(distanceInMeters))
+                    //if (distance2 <= Distance.FromMeters(distanceInMeters).Value)
                     {
                         // get interval
                         var interval = datai.DateReported.Subtract(dataj.DateReported);
@@ -92,19 +97,11 @@ namespace IntersectionOfPoints
                         // check interval
                         if (interval <= TimeSpan.FromMinutes(intervalInMinutes))
                         {
-                            lock (obj)
-                                matchCount++;
+                            Interlocked.Increment(ref matchCount);
                         }
                     }
 
-                    lock (obj)
-                    {
-                        loopCount++;
-                        var pecentage = Math.Round(((double)loopCount / maximum) * 100, 2);
-                        Console.WriteLine($"{pecentage}% -> Match found: {matchCount}");
-                    }
-                    
-
+                    Interlocked.Increment(ref loopCount);
                 }
             });
         }
