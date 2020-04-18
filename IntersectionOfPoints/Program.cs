@@ -20,22 +20,34 @@ namespace IntersectionOfPoints
             public double Longitude { get; set; }
             public DateTime DateReported { get; set; }
         }
+        private static object obj = new object();
 
         const int MINIMUM_DISTANCE_METERS = 10;
         const int MINIMUM_INTERVAL_MINUTES = 10;
 
+        static int loopCount = 0;
+        static int matchCount = 0;
+
         static void Main(string[] args)
         {
-            var (listUser1, listUser2) = GetFakeData(10000);
+            var (listUser1, listUser2) = GetFakeData(100);
 
             Stopwatch sw = new Stopwatch();
 
             sw.Start();
 
-            ProcessList(listUser1, listUser2, MINIMUM_INTERVAL_MINUTES, MINIMUM_DISTANCE_METERS);
+            ProcessList(
+                sw,
+                listUser1,
+                listUser2,
+                MINIMUM_INTERVAL_MINUTES,
+                MINIMUM_DISTANCE_METERS);
 
             sw.Stop();
-            Console.WriteLine($"Elapsed={sw.Elapsed.Humanize()}");
+
+            Console.WriteLine($"total loops => {loopCount}");
+            Console.WriteLine($"total match => {matchCount}");
+            Console.WriteLine($"elapsed time => {sw.Elapsed.Humanize()} // {sw.Elapsed.TotalMilliseconds}");
             Console.ReadKey();
         }
 
@@ -50,11 +62,19 @@ namespace IntersectionOfPoints
             return (dataFaker.Generate(numberOfLines), dataFaker.Generate(numberOfLines));
         }
 
-        static void ProcessListNew(List<UserGeoData> list1, List<UserGeoData> list2, int intervalInMinutes, int distanceInMeters)
+        static void ProcessList(
+            Stopwatch sw,
+            List<UserGeoData> list1,
+            List<UserGeoData> list2,
+            int intervalInMinutes,
+            int distanceInMeters)
         {
-            foreach (var datai in list1)
+            int maximum = list1.Count * list2.Count;
+
+            Parallel.ForEach(list1, (datai) =>
             {
                 var posi = new Position(new Longitude(datai.Longitude), new Latitude(datai.Latitude));
+
                 foreach (var dataj in list2)
                 {
                     // get position
@@ -64,46 +84,60 @@ namespace IntersectionOfPoints
                     var distance = posi.DistanceTo(posj);
 
                     // check distance
-                    if (!(distance <= Distance.FromMeters(distanceInMeters)))
-                        // continue if the desired distance isn't met
-                        continue;
+                    if (distance <= Distance.FromMeters(distanceInMeters))
+                    {
+                        // get interval
+                        var interval = datai.DateReported.Subtract(dataj.DateReported);
 
-                    // get interval
-                    var interval = datai.DateReported.Subtract(dataj.DateReported);
+                        // check interval
+                        if (interval <= TimeSpan.FromMinutes(intervalInMinutes))
+                        {
+                            lock (obj)
+                                matchCount++;
+                        }
+                    }
 
-                    // check interval
-                    if (interval <= TimeSpan.FromMinutes(intervalInMinutes))
-                        Console.WriteLine($">>>>>> ORANGE PERSON <<<<<<");
+                    lock (obj)
+                    {
+                        loopCount++;
+                        var pecentage = Math.Round(((double)loopCount / maximum) * 100, 2);
+                        Console.WriteLine($"{pecentage}% -> Match found: {matchCount}");
+                    }
+                    
+
                 }
-            }
+            });
         }
 
-        static void ProcessList(List<UserGeoData> list1, List<UserGeoData> list2,int intervalInMinutes,int distanceInMeters)
+        #region Helpers
+        #region private: const
+        private const double _radiusEarthMiles = 3959;
+        private const double _radiusEarthKM = 6371;
+        private const double _m2km = 1.60934;
+        private const double _toRad = Math.PI / 180;
+        #endregion
+        public static double DistanceMetresSEP(double Lat1,
+                                      double Lon1,
+                                      double Lat2,
+                                      double Lon2)
         {
-            foreach (var datai in list1)
+            try
             {
-                var posi = new Position(new Longitude(datai.Longitude), new Latitude(datai.Latitude));
-                foreach (var dataj in list2)
-                {
-                    // get position
-                    var posj = new Position(new Longitude(dataj.Longitude), new Latitude(dataj.Latitude));
+                double _radLat1 = Lat1 * _toRad;
+                double _radLat2 = Lat2 * _toRad;
+                double _dLat = (_radLat2 - _radLat1);
+                double _dLon = (Lon2 - Lon1) * _toRad;
 
-                    // get distance
-                    var distance = posi.DistanceTo(posj);
+                double _a = (_dLon) * Math.Cos((_radLat1 + _radLat2) / 2);
 
-                    // check distance
-                    if (!(distance <= Distance.FromMeters(distanceInMeters)))
-                        // continue if the desired distance isn't met
-                        continue;
+                // central angle, aka arc segment angular distance
+                double _centralAngle = Math.Sqrt(_a * _a + _dLat * _dLat);
 
-                    // get interval
-                    var interval = datai.DateReported.Subtract(dataj.DateReported);
-
-                    // check interval
-                    if (interval <= TimeSpan.FromMinutes(intervalInMinutes))
-                        Console.WriteLine($">>>>>> ORANGE PERSON <<<<<<");
-                }
+                // great-circle (orthodromic) distance on Earth between 2 points
+                return _radiusEarthMiles * _centralAngle * 1609;
             }
+            catch { throw; }
         }
+        #endregion
     }
 }
