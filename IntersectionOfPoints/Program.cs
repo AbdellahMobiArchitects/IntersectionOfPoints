@@ -10,6 +10,7 @@ using Humanizer;
 using Bogus;
 using System.Diagnostics;
 using System.Threading;
+using StackExchange.Profiling;
 
 namespace IntersectionOfPoints
 {
@@ -25,30 +26,30 @@ namespace IntersectionOfPoints
         const int MINIMUM_DISTANCE_METERS = 10;
         const int MINIMUM_INTERVAL_MINUTES = 10;
 
-        static int loopCount = 0;
+        static int innerLoopCount = 0;
         static int matchCount = 0;
 
+        public static MiniProfiler Profiler { get; set; }
         static void Main(string[] args)
         {
             var (listUser1, listUser2) = GetFakeData(10000);
 
-            Stopwatch sw = new Stopwatch();
 
             Console.WriteLine($"Starting Test");
-            sw.Start();
+            Profiler = MiniProfiler.StartNew(nameof(Profiler));
+            using (Profiler.Step(nameof(ProcessList)))
+            {
+                // Do some work...
+                ProcessList(
+                    listUser1,
+                    listUser2,
+                    MINIMUM_INTERVAL_MINUTES,
+                    MINIMUM_DISTANCE_METERS);
+            }
 
-            ProcessList(
-                sw,
-                listUser1,
-                listUser2,
-                MINIMUM_INTERVAL_MINUTES,
-                MINIMUM_DISTANCE_METERS);
-
-            sw.Stop();
-
-            Console.WriteLine($"total loops => {loopCount}");
+            Console.WriteLine($"total loops => {innerLoopCount}");
             Console.WriteLine($"total match => {matchCount}");
-            Console.WriteLine($"elapsed time => {sw.Elapsed.TotalMilliseconds} ms");
+            Console.WriteLine(Profiler.RenderPlainText());
             Console.ReadKey();
         }
 
@@ -63,25 +64,26 @@ namespace IntersectionOfPoints
             return (dataFaker.Generate(numberOfLines), dataFaker.Generate(numberOfLines));
         }
 
+
         static void ProcessList(
-            Stopwatch sw,
+
             List<UserGeoData> list1,
             List<UserGeoData> list2,
             int intervalInMinutes,
             int distanceInMeters)
         {
             int maximum = list1.Count * list2.Count;
-
             Parallel.ForEach(list1, (datai) =>
             {
                 foreach (var dataj in list2)
                 {
                     // get distance
                     var distance2 = DistanceMetresSEP(datai.Latitude, datai.Longitude, dataj.Latitude, dataj.Longitude);
+
                     if (distance2 <= distanceInMeters)
                     {
                         // get interval
-                        var interval = datai.DateReported.Subtract(dataj.DateReported);
+                        TimeSpan interval = datai.DateReported.Subtract(dataj.DateReported);
 
                         // check interval
                         if (interval <= TimeSpan.FromMinutes(intervalInMinutes))
@@ -90,7 +92,8 @@ namespace IntersectionOfPoints
                         }
                     }
 
-                    Interlocked.Increment(ref loopCount);
+                    Interlocked.Increment(ref innerLoopCount);
+
                 }
             });
         }
